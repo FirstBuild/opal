@@ -1,13 +1,16 @@
-// This program is composed of multiple functions that will be implemented on the "Nugget Ice Maker" 
-// 
+// opal_9_1
+// This program drives the neopixels on the nugget ice prototype responds to some environmental iputs. 
+// The core of this program is a switch case statement that selects the current display mode.
+// Each function runs through the display linearly, so it sets the leds immediately then waits within the
+// function until the next time it needs the update. In opal_timer each light mode works as a function of time.
+// Authors: Ricardo Aguiar and John Nolan
+// last updated September 1
 
 #include <Adafruit_NeoPixel.h>
 #include <EEPROM.h>
 //#include <chillhub.h>
 //#include <crc.h>
-//#include "chillhub.h"
-//#include "chillduino.h"
-//#include <QueueArray.h>
+#include <QueueArray.h>
 
 #define CAPTOUCH   2    // Digital IO pin connected to the button.  This will be
                           // driven with a pull-up resistor so the switch should
@@ -39,7 +42,7 @@ float IRvalue;
 float IRavg[10];
 float distance = 0;
 boolean flag =false;;
-//QueueArray<float> averageQueue;
+QueueArray<float> averageQueue;
 const int AVG_COUNT = 100;
 
 
@@ -79,7 +82,7 @@ void loop() {
   Dim();                            //--
   double id = analogRead(IR) *5/1023;
   IRvalue = id;
-  /*averageQueue.enqueue(IRvalue);
+  averageQueue.enqueue(IRvalue);
    if (averageQueue.count() >= AVG_COUNT) {
      distance = getAverage();
      distance = 0.0048*id*id-0.13*id+1.2403;
@@ -87,18 +90,21 @@ void loop() {
      Serial.println(distance);
      Serial.print("Dimmed: "); 
      Serial.println(digitalRead(DAYNIGHT));
-   }*/
+   }
    Wait(20);
-   //fullIce(10, 20);
-//}                                          //--
-  // Get current button state.                                         // "showType" back to initial state
-   //int time = 500;
- if(startShow(showType)) { // detected a button press during the wait block
+   /**********start Show*************/
+ /*if(startShow(showType)) { // detected a button press during the wait block
       if (showType > 5) showType = 0; // testing (from 100)
       else showType++; // increment if 0 through 5
-  } //end wait here to have it repeat show every time
+  }*/
+  /******Un comment this to see the neopixel display******
+   *This statement runs the lights with the current 'showtype' (0 through 5) and increments
+   * the showtype when the user presses a button. This let us cycle through the different
+   * light states. The problem is that we read the IR sensor in this loop. Unless we use an interrupt
+   * there was not a good way to keep a constant average.
+    */
+    /*****************************/
      delay(20);
-  //Serial.println(showType);
 }
 
 //----------------------------------------------------------------
@@ -373,23 +379,23 @@ int Clean(int rd, int gd, int bd, uint8_t wait){
   int progress_wait; // time to wait between each pixel in progress wheel
   int ifade; // for last stage
   
-  pbr = 105;
+  pbr = 105; // progress background
   pbg = 105;
   pbb = 0;
-  pdr = 155;
-  pdg = 155;
+  pdr = 155; // progress dot
+  pdg = 155; // describes the color in the area that has been filled
   pdb = 25;
-  ebr = 20;
+  ebr = 20; // empty background
   ebg = 20;
   ebb = 5;
-  edr = 50;
-  edg = 50;
+  edr = 50; // empty dot
+  edg = 50; // describes the color in the unfilled region
   edb = 25;
   progress_wait = 140;
 
   
   for (int icount = 0; icount < 3; icount++) { // initial user response loops (3)
-  if (sigc = lerpWheel(rd, gd, bd, 0, 0, 0, 0, 11, 85)) return sigc;
+    if (sigc = lerpWheel(rd, gd, bd, 0, 0, 0, 0, 11, 85)) return sigc;
   }
   
    if (sigc = Wait(wait)) return sigc;
@@ -557,7 +563,7 @@ void MOLDBODYTEMPERATURE(void) {
 
 //----------------------IRSENSOR---------------------------------------//
 
-/*float getAverage() {
+float getAverage() {
   float average;
  
   int count = averageQueue.count(); // number of items in queue before dequeing
@@ -567,7 +573,7 @@ void MOLDBODYTEMPERATURE(void) {
   average = average / count;
   
   return average;
-}*/
+}
 
 //----------------------DAY/NIGHT----------------------------------------//
 
@@ -582,9 +588,11 @@ void Dim() {
 }
 
 void setRing(int i, int r, int g, int b) {
+  // replicates strip.setPixelColor with the dimming switch taken into account
   float scale = 1.0;
   
   if (!digitalRead(DAYNIGHT)) {
+    // dim by more than a sixth if the switch is off
     scale = 0.15; // dim factor
   }
 
